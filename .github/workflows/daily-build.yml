@@ -1,6 +1,9 @@
 name: Build Node A
 
 on:
+  push:
+    branches:
+      - chore/chronsync-a-feed-acquisition
   schedule:
     - cron: "0 2 * * *"
   workflow_dispatch:
