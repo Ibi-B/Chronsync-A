@@ -29,15 +29,44 @@ jobs:
 
       - name: Build Node A
         run: |
+          set -euo pipefail
           mkdir -p raw_data public
-          curl -L --fail "https://i.mjh.nz/PlutoTV/us.xml.gz" | gunzip > raw_data/pluto_us.xml
-          curl -L --fail "https://i.mjh.nz/PlutoTV/ca.xml.gz" | gunzip > raw_data/pluto_ca.xml
-          curl -L --fail "https://i.mjh.nz/SamsungTVPlus/us.xml.gz" | gunzip > raw_data/sam_us.xml
-          curl -L --fail "https://i.mjh.nz/Plex/us.xml.gz" | gunzip > raw_data/plex_us.xml
-          curl -L --fail "https://i.mjh.nz/Roku/all.xml.gz" | gunzip > raw_data/roku_all.xml
-          curl -L --fail "https://epgshare01.online/epgshare01/epg_ripper_US2.xml.gz" | gunzip > raw_data/share_us.xml
-          curl -L --fail "https://epgshare01.online/epgshare01/epg_ripper_US_LOCALS1.xml.gz" | gunzip > raw_data/share_us_locals.xml
-          curl -L --fail "https://epgshare01.online/epgshare01/epg_ripper_CA2.xml.gz" | gunzip > raw_data/share_ca.xml
+
+          report="raw_data/source_report.tsv"
+          printf 'source\turl\tbytes\tstatus\n' > "$report"
+
+          fetch() {
+            local url="$1"
+            local output="$2"
+            local compressed="${output}.gz"
+
+            curl --fail --location --show-error --silent \
+              "$url" \
+              -o "$compressed"
+
+            test -s "$compressed"
+            gzip -t "$compressed"
+            gunzip -c "$compressed" > "$output"
+            test -s "$output"
+
+            printf '%s\t%s\t%s\tok\n' \
+              "$(basename "$output")" \
+              "$url" \
+              "$(stat -c%s "$output")" \
+              >> "$report"
+          }
+
+          fetch "https://i.mjh.nz/PlutoTV/us.xml.gz" "raw_data/pluto_us.xml"
+          fetch "https://i.mjh.nz/PlutoTV/ca.xml.gz" "raw_data/pluto_ca.xml"
+          fetch "https://i.mjh.nz/SamsungTVPlus/us.xml.gz" "raw_data/sam_us.xml"
+          fetch "https://i.mjh.nz/Plex/us.xml.gz" "raw_data/plex_us.xml"
+          fetch "https://i.mjh.nz/Roku/all.xml.gz" "raw_data/roku_all.xml"
+          fetch "https://epgshare01.online/epgshare01/epg_ripper_US2.xml.gz" "raw_data/share_us.xml"
+          fetch "https://epgshare01.online/epgshare01/epg_ripper_US_LOCALS1.xml.gz" "raw_data/share_us_locals.xml"
+          fetch "https://epgshare01.online/epgshare01/epg_ripper_CA2.xml.gz" "raw_data/share_ca.xml"
+
+          test "$(find raw_data -maxdepth 1 -name '*.xml' -type f | wc -l)" -eq 8
+
           python scripts/build_db.py public/a.sqlite3
 
       - uses: actions/configure-pages@v5
