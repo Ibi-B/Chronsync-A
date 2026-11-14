@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - chore/chronsync-a-feed-acquisition
+      - codex/preserve-xmltv-channel-aliases
   schedule:
     - cron: "0 2 * * *"
   workflow_dispatch:
